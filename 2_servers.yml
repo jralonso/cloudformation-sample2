@@ -105,8 +105,9 @@ Resources:
           # Add the user to the supplementary group(s)
           usermod -aG docker ubuntu
           docker run -p 8080:8080 tomcat:8.0
+      # Ubuntu, 18.04 LTS (user ubuntu)     
       ImageId: ami-005bdb005fb00e791
-      #IamInstanceProfile: !Ref ProfileWithRolesForOurApp
+      # IamInstanceProfile: !Ref ProfileWithRolesForOurApp
       KeyName: udacityTestEC2
       SecurityGroups:
         - Ref: WebServerSecGroup
