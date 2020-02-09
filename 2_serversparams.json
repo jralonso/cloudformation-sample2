@@ -1,7 +1,7 @@
 [
     {
         "ParameterKey": "EnvironmentName",
-        "ParameterValue": "CloudformationProject2"
+        "ParameterValue": "WithTomcat8"
     },
     {
         "ParameterKey": "MyLocalIPAddressCIDR",

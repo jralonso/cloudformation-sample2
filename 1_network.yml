@@ -35,6 +35,8 @@ Resources:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VpcCIDR
+      # Add DNS names to our instances
+      EnableDnsHostnames: true
       EnableDnsSupport: true
       Tags:
         - Key: Name

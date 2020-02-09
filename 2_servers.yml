@@ -166,7 +166,8 @@ Resources:
           # Update apt package index
           sudo apt-get update          
           # Install the requirements for docker
-          sudo apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+          # Add DEBIAN_FRONTEND=noninteractive to avoid interactive apt-get questions (things that -y does not prevent)
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common
           # Add Docker's GPG key
           sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
           # Use the following command to set up the stable repository
@@ -180,8 +181,9 @@ Resources:
           # add -y flag to install unattended
           sudo apt-get install docker-ce docker-ce-cli containerd.io -y
           # Add the user to the supplementary group(s)
-          usermod -aG docker ubuntu
-          sudo docker run -p 8080:8080 tomcat:8.0
+          sudo usermod -aG docker ubuntu
+          # Run detached Tomcat server in 8080 
+          sudo docker run -d -p 8080:8080 tomcat:8.0
       # Ubuntu, 18.04 LTS (user ubuntu)     
       ImageId: ami-005bdb005fb00e791
       # IamInstanceProfile: !Ref ProfileWithRolesForOurApp
