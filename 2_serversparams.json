@@ -2,5 +2,9 @@
     {
         "ParameterKey": "EnvironmentName",
         "ParameterValue": "CloudformationProject2"
+    },
+    {
+        "ParameterKey": "MyLocalIPAddressCIDR",
+        "ParameterValue": "188.26.210.143/32"
     }
 ]

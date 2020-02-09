@@ -1,5 +1,5 @@
 Description: >
-  Juan Ramon Alonso / Udacity
+  Juan Ramon Alonso / Tomcat Docker Backend
   This is a template using YAML
 
 Parameters:
@@ -9,7 +9,6 @@ Parameters:
 
 Resources:
 
-  # Security groups
   LBSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -31,22 +30,25 @@ Resources:
         - Key: Name
           Value: !Sub ${EnvironmentName} SecGrp for HTTP LB
 
+  # BAckend Server Security Group
   WebServerSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow HTTP traffic to our Web server and SSH from our local environment
+      GroupDescription: Allow HTTP traffic to our Web server and SSH from Bastion Host in VPC
       VpcId: 
         Fn::ImportValue:
           !Sub "${EnvironmentName}-VPCID"
       SecurityGroupIngress:
+          # Rule for Tomcat Application
         - IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
           CidrIp: 0.0.0.0/0 
+          # Rule for Bastion host
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: 188.26.210.143/32   
+          CidrIp: 10.0.0.0/16
       SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 0
@@ -55,7 +57,59 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} SecGrp for HTTP and local SSH Web Server
+  
+  # Bastion host security group
+  BastionSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH traffic to our Bastion Host from our local environment
+      VpcId: 
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+          # Rule for Bastion host
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref MyLocalIPAddressCIDR
+        - IpProtocol: icmp  
+          FromPort: -1  
+          ToPort: -1  
+          CidrIp: !Ref MyLocalIPAddressCIDR
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0 
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} SecGrp for SSH Bastion Host
 
+  # IAM 
+  IAMRoleAccessEC2FromBastionHost:  
+    Condition: CreateIAMRole  
+    Type: AWS::IAM::Role
+    Properties: 
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+      Path: /  
+      AssumeRolePolicyDocument:  
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow  
+            Principal:  
+              Service:  
+              - ec2.amazonaws.com  
+            Action:  
+              - sts:AssumeRole
+  
+  IAMRoleBastionHostInstanceProfile: 
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/" 
+      Roles: 
+        - !Ref IAMRoleAccessEC2FromBastionHost
+  
   # IAM Role for S3 access
   IAMRoleS3Access:
     Type: AWS::IAM::Role
@@ -78,6 +132,25 @@ Resources:
       Path: "/" 
       Roles: 
         - !Ref IAMRoleS3Access
+
+  # Bastion Host
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: udacityTestEC2
+      ImageId: ami-04590e7389a6e577c
+      InstanceType: t2.micro
+      IamInstanceProfile: !Ref IAMRoleBastionHostInstanceProfile
+      SecurityGroupIds:
+        - Ref: BastionSecGroup
+      SubnetId: 
+        Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
+      UserData: !Base64 |
+        #!/bin/bash -ex
+        # put your script here
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Bastion Host
     
   # Launch configuration
   WebAppLaunchConfig:
@@ -117,6 +190,9 @@ Resources:
         - DeviceName: "/dev/sdk"
           Ebs:
             VolumeSize: '10'
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Backend Server
 
   #Auto scaling group
   WebAppGroup:
