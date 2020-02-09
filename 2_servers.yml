@@ -6,6 +6,10 @@ Parameters:
   EnvironmentName: 
     Description: An environment name to be prefixed to all resources
     Type: String
+  
+  MyLocalIPAddressCIDR: 
+    Description: Local IP Address
+    Type: String
 
 Resources:
 
@@ -86,8 +90,7 @@ Resources:
           Value: !Sub ${EnvironmentName} SecGrp for SSH Bastion Host
 
   # IAM 
-  IAMRoleAccessEC2FromBastionHost:  
-    Condition: CreateIAMRole  
+  IAMRoleAccessEC2FromBastionHost:
     Type: AWS::IAM::Role
     Properties: 
       ManagedPolicyArns: 
