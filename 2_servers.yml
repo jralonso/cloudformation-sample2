@@ -194,9 +194,6 @@ Resources:
         - DeviceName: "/dev/sdk"
           Ebs:
             VolumeSize: '10'
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName} Backend Server
 
   #Auto scaling group
   WebAppGroup:
