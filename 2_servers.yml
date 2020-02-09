@@ -24,8 +24,8 @@ Resources:
           CidrIp: 0.0.0.0/0 
       SecurityGroupEgress:
         - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
+          FromPort: 8080
+          ToPort: 8080
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
@@ -40,8 +40,8 @@ Resources:
           !Sub "${EnvironmentName}-VPCID"
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
+          FromPort: 8080
+          ToPort: 8080
           CidrIp: 0.0.0.0/0 
         - IpProtocol: tcp
           FromPort: 22
@@ -102,7 +102,7 @@ Resources:
           sudo apt-get update
           #Install the latest version of Docker Engine - Community and containerd, 
           sudo apt-get install docker-ce docker-ce-cli containerd.io
-          #
+          # Add the user to the supplementary group(s)
           usermod -aG docker ubuntu
           docker run -p 8080:8080 tomcat:8.0
       ImageId: ami-005bdb005fb00e791
@@ -179,7 +179,7 @@ Resources:
       HealthCheckTimeoutSeconds: 30
       HealthyThresholdCount: 2
       Name: String
-      Port: 80
+      Port: 8080
       Protocol: HTTP
       Tags:
         - Key: Environment
