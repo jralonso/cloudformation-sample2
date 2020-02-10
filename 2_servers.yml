@@ -183,14 +183,15 @@ Resources:
           # Add the user to the supplementary group(s)
           sudo usermod -aG docker ubuntu
           # Run detached Tomcat server in 8080 
-          sudo docker run -d -p 8080:8080 tomcat:8.0
+          sudo docker volume create --name jiraVolume
+          sudo docker run -v jiraVolume:/var/atlassian/application-data/jira --name="jira" -d -p 8080:8080 atlassian/jira-software
       # Ubuntu, 18.04 LTS (user ubuntu)     
       ImageId: ami-005bdb005fb00e791
       # IamInstanceProfile: !Ref ProfileWithRolesForOurApp
       KeyName: udacityTestEC2
       SecurityGroups:
         - Ref: WebServerSecGroup
-      InstanceType: t3.small
+      InstanceType: t3.medium
       IamInstanceProfile: !Ref IAMWebInstanceProfile
       BlockDeviceMappings:
         - DeviceName: "/dev/sdk"
