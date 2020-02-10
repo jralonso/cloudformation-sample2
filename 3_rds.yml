@@ -1,0 +1,50 @@
+Description: >
+  Juan Ramon Alonso / Tomcat Docker Backend
+  This is a template using YAML
+
+Parameters:
+  EnvironmentName: 
+    Description: An environment name to be prefixed to all resources
+    Type: String
+  
+Resources:
+
+  rdsDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.small
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      BackupRetentionPeriod: 7
+      DBInstanceIdentifier: collaboration-dev
+      DBName: jiradb
+      # DBParameterGroupName:
+      # We use VPC security groups
+      # DBSecurityGroups: 
+      #  - sg-05b589d7f89452fe7
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      Engine: mysql
+      EngineVersion: 5.7.22 
+      MasterUsername: admin
+      MasterUserPassword: 12345678
+      MultiAZ: true
+      PubliclyAccessible: false
+      # Previously created group with our stack 
+      VPCSecurityGroups:
+        - sg-05b589d7f89452fe7
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} RDS Database
+
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: !Sub ${EnvironmentName} RDS Database SubnetGroup built with private subnets
+      DBSubnetGroupName: !Sub ${EnvironmentName} RDS Subnetgroup
+      SubnetIds:
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PRI1-SN"
+        - Fn::ImportValue: !Sub "${EnvironmentName}-PRI2-SN"
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} RDS Database SubnetGroup
