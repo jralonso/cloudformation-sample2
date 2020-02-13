@@ -150,7 +150,9 @@ Resources:
         Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
       UserData: !Base64 |
         #!/bin/bash -ex
-        # put your script here
+        # Install MySQL client
+        sudo yum update -y
+        sudo yum install mysql -y
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Bastion Host
