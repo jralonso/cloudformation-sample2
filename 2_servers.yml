@@ -5,10 +5,15 @@ Description: >
 Parameters:
   EnvironmentName: 
     Description: An environment name to be prefixed to all resources
-    Type: String
-  
+    Type: String  
   MyLocalIPAddressCIDR: 
     Description: Local IP Address
+    Type: String
+  BucketName:
+    Description: Bucket with seed files
+    Type: String
+  JiraHomeBackupFile:
+    Description: Jira Home backup file
     Type: String
 
 Resources:
@@ -112,6 +117,7 @@ Resources:
       Path: "/" 
       Roles: 
         - !Ref IAMRoleAccessEC2FromBastionHost
+        - !Ref IAMRoleS3Access
   
   # IAM Role for S3 access
   IAMRoleS3Access:
@@ -139,6 +145,13 @@ Resources:
   # Bastion Host
   BastionHost:
     Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Authentication: 
+        S3AccessCreds: 
+          type: S3
+          buckets: 
+            - !Ref BucketName
+          roleName: !Ref IAMWebInstanceProfile
     Properties:
       KeyName: udacityTestEC2
       ImageId: ami-04590e7389a6e577c
@@ -150,9 +163,13 @@ Resources:
         Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
       UserData: !Base64 |
         #!/bin/bash -ex
-        # Install MySQL client
-        sudo yum update -y
-        sudo yum install mysql -y
+        # Send user data logs to a file
+        exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+        # Install mysql
+        # Documentation: https://dev.mysql.com/doc/mysql-repo-excerpt/5.7/en/linux-installation-yum-repo.html
+        sudo yum install -y https://dev.mysql.com/get/mysql57-community-release-el7-11.noarch.rpm          
+        sudo yum install -y mysql-community-client
+
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Bastion Host
