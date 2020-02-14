@@ -184,9 +184,29 @@ Resources:
           sudo apt-get install docker-ce docker-ce-cli containerd.io -y
           # Add the user to the supplementary group(s)
           sudo usermod -aG docker ubuntu
+          # Create volumes and mount points
+          # mount points for future named volumes
+          sudo mkdir /var/lib/docker/volumes/jiradata_volume
+          sudo mkdir /var/lib/docker/volumes/jiralogs_volume
+          sudo mkdir /var/lib/docker/volumes/tomcatlogs_volume
+          # format volumes
+          sudo mkfs -t ext4 /dev/sdf
+          sudo mkfs -t ext4 /dev/sdg
+          sudo mkfs -t ext4 /dev/sdh
+          # Mount host volumes
+          sudo mount /dev/sdf /var/lib/docker/volumes/jiradata_volume
+          sudo mount /dev/sdg /var/lib/docker/volumes/jiralogs_volume
+          sudo mount /dev/sdh /var/lib/docker/volumes/tomcatlogs_volume
+          # Create named Volumes
+          docker volume create --name jiradata_volume
+          docker volume create --name jiralogs_volume
+          docker volume create --name tomcatlogs_volume
           # Run detached Tomcat server in 8080 
-          sudo docker volume create --name jiraVolume
-          sudo docker run -v jiraVolume:/var/atlassian/application-data/jira --name="jira" -d -p 8080:8080 atlassian/jira-software
+          sudo docker run \
+          -v jiradata_volume:/var/atlassian/application-data/jira \
+          -v jiralogs_volume:/var/atlassian/application-data/jira/logs \
+          -v tomcatlogs_volume:/opt/atlassian/jira/logs/ \
+          -name="jira" -d -p 8080:8080 atlassian/jira-software
       # Ubuntu, 18.04 LTS (user ubuntu)     
       ImageId: ami-005bdb005fb00e791
       # IamInstanceProfile: !Ref ProfileWithRolesForOurApp
@@ -196,9 +216,18 @@ Resources:
       InstanceType: t3.medium
       IamInstanceProfile: !Ref IAMWebInstanceProfile
       BlockDeviceMappings:
-        - DeviceName: "/dev/sdk"
-          Ebs:
-            VolumeSize: '10'
+        - DeviceName: /dev/sdf
+          Ebs: 
+            VolumeSize: 200
+            VolumeType: gp2
+        - DeviceName: /dev/sdg
+          Ebs: 
+            VolumeSize: 20
+            VolumeType: gp2
+        - DeviceName: /dev/sdh
+          Ebs: 
+            VolumeSize: 20
+            VolumeType: gp2    
 
   #Auto scaling group
   WebAppGroup:
@@ -270,4 +299,3 @@ Resources:
       UnhealthyThresholdCount: 5
       VpcId:
         Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
-  
