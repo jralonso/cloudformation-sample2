@@ -17,7 +17,7 @@
     },
     {
         "ParameterKey": "DBInstanceClass",
-        "ParameterValue": "db.t3.small"
+        "ParameterValue": "db.t3.medium"
     },
     {
         "ParameterKey": "BucketName",
