@@ -2,5 +2,37 @@
     {
         "ParameterKey": "EnvironmentName",
         "ParameterValue": "WithTomcat8"
+    },
+    {
+        "ParameterKey": "MultiAZ",
+        "ParameterValue": "false"
+    },
+    {
+        "ParameterKey": "MasterUsername",
+        "ParameterValue": "admin"
+    },
+    {
+        "ParameterKey": "MasterUserPassword",
+        "ParameterValue": "12345678"
+    },
+    {
+        "ParameterKey": "DBInstanceClass",
+        "ParameterValue": "db.t3.small"
+    },
+    {
+        "ParameterKey": "BucketName",
+        "ParameterValue": "ita212"
+    },
+    {
+        "ParameterKey": "DatabaseBackupFile",
+        "ParameterValue": "dev-jira-02_backup.sql.bz2"
+    },
+    {
+        "ParameterKey": "JiraDBUser",
+        "ParameterValue": "jirauser"
+    },
+    {
+        "ParameterKey": "JiraDBUserPassword",
+        "ParameterValue": "12345678"
     }
 ]

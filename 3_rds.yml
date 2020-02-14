@@ -6,19 +6,63 @@ Parameters:
   EnvironmentName: 
     Description: An environment name to be prefixed to all resources
     Type: String
-  
+  MultiAZ: 
+    Description: Database in MultiAZ mode
+    Type: String
+    Default: false
+  MasterUsername: 
+    Description: Database Master Username
+    Type: String
+    Default: admin
+  MasterUserPassword: 
+    Description: Database Master Userpassowrd
+    Type: String
+    Default: "12345678"
+  DBInstanceClass: 
+    Description: Database Instance Class
+    Type: String
+    Default: db.t3.small
+  DBInstanceIdentifier: 
+    Description: Database Instance Identifier
+    Type: String
+    Default: collaboration-dev
+  JiraDBName: 
+    Description: Database Name
+    Type: String
+    Default: jira
+  AllocatedStorage: 
+    Description: Database Size
+    Type: Number
+    Default: 20
+  MyLocalIPAddressCIDR:
+    Description: My own IP
+    Type: String
+    Default: 91.223.129.17/32
+  BucketName:
+    Description: Bucket whit files
+    Type: String
+  DatabaseBackupFile:
+    Description: Database backup file
+    Type: String
+  JiraDBUser:
+    Description: Jira database user
+    Type: String
+  JiraDBUserPassword:
+    Description: Jira database user password
+    Type: String
+
 Resources:
 
   rdsDBInstance:
     Type: AWS::RDS::DBInstance
     Properties:
-      AllocatedStorage: 20
-      DBInstanceClass: db.t3.small
+      AllocatedStorage: !Ref AllocatedStorage
+      DBInstanceClass: !Ref DBInstanceClass
       AllowMajorVersionUpgrade: false
       AutoMinorVersionUpgrade: true
       BackupRetentionPeriod: 7
-      DBInstanceIdentifier: collaboration-dev
-      DBName: jiradb
+      DBInstanceIdentifier: !Ref DBInstanceIdentifier
+      # DBName: !Ref DBName
       # DBParameterGroupName:
       # We use VPC security groups
       # DBSecurityGroups: 
@@ -26,9 +70,9 @@ Resources:
       DBSubnetGroupName: !Ref RDSSubnetGroup
       Engine: mysql
       EngineVersion: 5.7.22 
-      MasterUsername: admin
-      MasterUserPassword: 12345678
-      MultiAZ: true
+      MasterUsername: !Ref MasterUsername
+      MasterUserPassword: !Ref MasterUserPassword
+      MultiAZ: !Ref MultiAZ
       PubliclyAccessible: false
       # Previously created group with our stack 
       VPCSecurityGroups:
@@ -48,3 +92,100 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} RDS Database SubnetGroup
+
+  # Bastion host security group
+  AllowAllOutboundBastionSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow all traffic from Bastion Host to Internet (download)
+      VpcId: 
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+          # Rule for Bastion host
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref MyLocalIPAddressCIDR
+        - IpProtocol: icmp  
+          FromPort: -1  
+          ToPort: -1  
+          CidrIp: !Ref MyLocalIPAddressCIDR
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0 
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} SecGrp for SSH Bastion Host
+
+  # Bastion Host to download database seed and import into RDS
+  BastionHost:
+    Type: AWS::EC2::Instance
+    DependsOn: rdsDBInstance
+    Metadata:
+      AWS::CloudFormation::Authentication: 
+        S3AccessCreds: 
+          type: S3
+          buckets: 
+            - !Ref BucketName
+          roleName: !Ref IAMRoleAccessRDSFromBastionHost
+    Properties:
+      KeyName: udacityTestEC2
+      ImageId: ami-04590e7389a6e577c
+      InstanceType: t2.micro
+      IamInstanceProfile: !Ref IAMRoleRDSBastionHostInstanceProfile
+      SecurityGroupIds:
+        - sg-05b589d7f89452fe7
+      SubnetId: 
+        Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+          # Send user data logs to a file
+          exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+          # Install mysql
+          # Documentation: https://dev.mysql.com/doc/mysql-repo-excerpt/5.7/en/linux-installation-yum-repo.html
+          sudo yum install -y https://dev.mysql.com/get/mysql57-community-release-el7-11.noarch.rpm          
+          sudo yum install -y mysql-community-client
+          # Download database backup
+          aws s3 cp s3://${BucketName}/${DatabaseBackupFile} /tmp
+          # Decompress database backup
+          sudo bzip2 -d /tmp/${DatabaseBackupFile}
+          # Set up database
+          echo "DROP DATABASE IF EXISTS ${JiraDBName};" >> /tmp/setup.mysql
+          echo "CREATE DATABASE ${JiraDBName} CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;" >> /tmp/setup.mysql
+          echo "CREATE USER '${JiraDBUser}'@'%' IDENTIFIED BY '${JiraDBUserPassword}';" >> /tmp/setup.mysql
+          echo "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,REFERENCES,ALTER,INDEX on ${JiraDBName}.* TO '${JiraDBUser}'@'%';" >> /tmp/setup.mysql
+          echo "FLUSH PRIVILEGES;" >> /tmp/setup.mysql
+          mysql -u${MasterUsername} -p${MasterUserPassword} -h${rdsDBInstance.Endpoint.Address} < /tmp/setup.mysql
+          mysql -u${MasterUsername} -p${MasterUserPassword} -h${rdsDBInstance.Endpoint.Address} < /tmp/${DatabaseBackupFile}
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Bastion Host
+
+  # IAM 
+  IAMRoleAccessRDSFromBastionHost:
+    Type: AWS::IAM::Role
+    Properties: 
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Path: /  
+      AssumeRolePolicyDocument:  
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow  
+            Principal:  
+              Service:  
+              - ec2.amazonaws.com  
+            Action:  
+              - sts:AssumeRole
+  
+  IAMRoleRDSBastionHostInstanceProfile: 
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/" 
+      Roles: 
+        - !Ref IAMRoleAccessRDSFromBastionHost
