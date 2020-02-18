@@ -74,6 +74,8 @@ Resources:
       MasterUserPassword: !Ref MasterUserPassword
       MultiAZ: !Ref MultiAZ
       PubliclyAccessible: false
+      OptionGroupName: "default:mysql-5-7"
+      DBParameterGroupName: !Ref RDSMYSQL57ParameterGroup
       # Previously created group with our stack 
       VPCSecurityGroups:
         - sg-05b589d7f89452fe7
@@ -81,6 +83,33 @@ Resources:
         - Key: Name
           Value: !Sub ${EnvironmentName} RDS Database
 
+  RDSMYSQL57ParameterGroup: 
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Parameters for Jira MySQL 5.7
+      Family: mysql5.7
+      # check https://confluence.atlassian.com/adminjiraserver081/connecting-jira-applications-to-mysql-5-7-970608532.html
+      # check https://confluence.atlassian.com/adminjiraserver/connecting-jira-applications-to-mysql-5-7-966063305.html
+      # See https://confluence.atlassian.com/kb/how-to-fix-the-collation-and-character-set-of-a-mysql-database-744326173.html
+      Parameters:
+        sql_mode: NO_ENGINE_SUBSTITUTION 
+        # Compatibility with confluence 6, we can upgrade to Confluence 7.3
+        #character_set_server: utf8mb4
+        #collation_server: utf8_bin #utf8mb4_bin
+        # Compatibility with confluence 6, we can upgrade to Confluence 7.3
+        character_set_server: utf8
+        collation_server: utf8_bin #utf8mb4_bin
+        innodb_default_row_format: DYNAMIC
+        innodb_large_prefix: 1 #1
+        innodb_file_format: Barracuda
+        innodb_log_file_size: 2147483648
+        max_allowed_packet: 268435456
+        binlog_format: row
+        tx_isolation: READ-COMMITTED
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} RDS Database Parameter group
+        
   RDSSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -107,10 +136,18 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: !Ref MyLocalIPAddressCIDR
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 188.26.220.132/32
         - IpProtocol: icmp  
           FromPort: -1  
           ToPort: -1  
           CidrIp: !Ref MyLocalIPAddressCIDR
+        - IpProtocol: icmp  
+          FromPort: -1  
+          ToPort: -1  
+          CidrIp: 188.26.220.132/32
       SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 0
@@ -155,15 +192,15 @@ Resources:
           sudo bzip2 -d /tmp/${DatabaseBackupFile}
           # Set up database
           echo "DROP DATABASE IF EXISTS ${JiraDBName};" >> /tmp/setup.mysql
-          echo "CREATE DATABASE ${JiraDBName} CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;" >> /tmp/setup.mysql
+          #echo "CREATE DATABASE ${JiraDBName} CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;" >> /tmp/setup.mysql
           echo "CREATE USER '${JiraDBUser}'@'%' IDENTIFIED BY '${JiraDBUserPassword}';" >> /tmp/setup.mysql
           echo "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,REFERENCES,ALTER,INDEX on ${JiraDBName}.* TO '${JiraDBUser}'@'%';" >> /tmp/setup.mysql
           echo "FLUSH PRIVILEGES;" >> /tmp/setup.mysql
           mysql -u${MasterUsername} -p${MasterUserPassword} -h${rdsDBInstance.Endpoint.Address} < /tmp/setup.mysql
-          mysql -u${MasterUsername} -p${MasterUserPassword} -h${rdsDBInstance.Endpoint.Address} < /tmp/${DatabaseBackupFile}
+          mysql -u${MasterUsername} -p${MasterUserPassword} -h${rdsDBInstance.Endpoint.Address} < /tmp/dev-jira-02_backup.sql
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName} Bastion Host
+          Value: !Sub ${EnvironmentName} RDS Bastion Host
 
   # IAM 
   IAMRoleAccessRDSFromBastionHost:
