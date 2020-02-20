@@ -1,6 +1,6 @@
-Description: >
-  Juan Ramon Alonso / Udacity
-  This is a template using YAML    
+Description: |
+  Juan Ramon Alonso / Udacity DevOps Cloud
+  Project 2 Infraestructure as code using Cloudformation
 
 Parameters:
   EnvironmentName:
