@@ -40,7 +40,8 @@ Resources:
     Properties:
       CidrBlock: !Ref VpcCIDR
       # We want VPC to provide DNS names for our instances
-      EnableDnsSupport: true
+      # do not 
+      EnableDnsHostnames: true
       Tags:
         - Key: Environment
           Value: !Ref EnvironmentName
