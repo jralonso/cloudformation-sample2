@@ -1,0 +1,122 @@
+Description: >
+  Juan Ramon Alonso / Udacity DevOps Cloud
+  Project 2 Infraestructure as code using Cloudformation
+  Bastion 
+  
+Parameters:
+  
+  EnvironmentName: 
+    Description: An environment name to be prefixed to all resources
+    Type: String
+
+  mylocalIPCIDRHome: 
+    Description: My local IP
+    Type: String
+
+Resources:
+
+  # Bastion Host
+  # Security group to allow SSH access
+  BastionHostSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and PING ingress and all traffic from Bastion Host to Internet
+      VpcId: 
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+          # Rule for Bastion host
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref mylocalIPCIDRHome
+        - IpProtocol: icmp  
+          FromPort: -1  
+          ToPort: -1  
+          CidrIp: !Ref mylocalIPCIDRHome          
+      SecurityGroupEgress:
+          # ALL egress ports allowed everywhere
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0 
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} SecGrp for SSH Bastion Host
+
+  BastionHostAZ1:
+    Type: AWS::EC2::Instance
+    #Metadata:
+    #  AWS::CloudFormation::Authentication: 
+    #    S3AccessCreds: 
+    #      type: S3
+    #      buckets: 
+    #        - !Ref BucketName
+    #      roleName: !Ref IAMRoleAccessSSMFromBastionHost
+    Properties:
+      KeyName: udacityTestEC2
+      # As Bastion we choose an Amazon Linux 2. A Kind of CentOS with some sotfware preinstalled like python and aws cli
+      ImageId: ami-0e8c04af2729ff1bb  #ami-04590e7389a6e577c 
+      InstanceType: t2.micro
+      IamInstanceProfile: !Ref IAMRoleSSMBastionHostInstanceProfile
+      SecurityGroupIds:
+        - !Ref BastionHostSecGroup
+      SubnetId: 
+        Fn::ImportValue: !Sub "${EnvironmentName}-PUB-SN-AZ1"
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Bastion Host
+
+  # IAM 
+  IAMRoleAccessSSMFromBastionHost:
+    Type: AWS::IAM::Role
+    Properties: 
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Path: /  
+      AssumeRolePolicyDocument:  
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow  
+            Principal:  
+              Service:  
+              - ec2.amazonaws.com  
+            Action:  
+              - sts:AssumeRole
+  
+  IAMRoleSSMBastionHostInstanceProfile: 
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/" 
+      Roles: 
+        - !Ref IAMRoleAccessSSMFromBastionHost
+
+Outputs:
+
+  BastionID:
+    Description: BastionHost Name in AZ1
+    Value: !Ref BastionHostAZ1
+    Export:
+      Name: !Sub ${EnvironmentName}-Bastion-AZ1-ID
+
+  BastionIP:
+    Description: BastionHost IP in AZ1
+    Value: !GetAtt BastionHostAZ1.PublicIp
+    Export: 
+      Name: !Sub ${EnvironmentName}-Bastion-AZ1-IP
+
+  BastionDNS:
+    Description: BastionHost DNS in AZ1
+    Value: !GetAtt BastionHostAZ1.PublicDnsName
+    Export: 
+      Name: !Sub ${EnvironmentName}-Bastion-AZ1-DNS
+
+  BastionSecGrp:
+    Description: Reference to the security group used by Bastion
+    Value: !Ref BastionHostSecGroup
+    Export: 
+      Name: !Sub ${EnvironmentName}-SG-BastionHostSecGroup

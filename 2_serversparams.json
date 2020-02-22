@@ -2,9 +2,5 @@
     {
         "ParameterKey": "EnvironmentName",
         "ParameterValue": "Project2"
-    },
-    {
-        "ParameterKey": "mylocalIPCIDRHome",
-        "ParameterValue": "91.223.129.17/32"
     }
 ]
