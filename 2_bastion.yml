@@ -30,7 +30,7 @@ Parameters:
 Resources:
   # Bastion Host
   # Security group to allow SSH access
-  BastionHostSecGroup1:
+  BastionHostSecGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow SSH and PING ingress and all traffic from Bastion Host to Internet
@@ -55,37 +55,7 @@ Resources:
           CidrIp: 0.0.0.0/0 
       Tags:
         - Key: Name
-          Value: !Sub ${EnvironmentName} SecGrp for SSH Bastion Host 2
-        - Key: Environment
-          Value: !Sub ${EnvironmentName}
-
-  # A second Security group will allow us to prevent access from bastion in public subnet 1 to hosts in private subnet2
-  BastionHostSecGroup2:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Allow SSH and PING ingress and all traffic from Bastion Host to Internet
-      VpcId: 
-        Fn::ImportValue:
-          !Sub "${EnvironmentName}-VPCID"
-      SecurityGroupIngress:
-          # Rule for Bastion host
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: !Ref MylocalIP
-        - IpProtocol: icmp  
-          FromPort: -1  
-          ToPort: -1  
-          CidrIp: !Ref MylocalIP          
-      SecurityGroupEgress:
-          # ALL egress ports allowed everywhere
-        - IpProtocol: tcp
-          FromPort: 0
-          ToPort: 65535
-          CidrIp: 0.0.0.0/0 
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName} SecGrp for SSH Bastion Host 2
+          Value: !Sub ${EnvironmentName} SecGrp for SSH Bastion Host
         - Key: Environment
           Value: !Sub ${EnvironmentName}
 
@@ -97,7 +67,7 @@ Resources:
       InstanceType: !Ref BastionInstanceType
       IamInstanceProfile: !Ref IAMRoleSSMBastionHostInstanceProfile
       SecurityGroupIds:
-       - !Ref BastionHostSecGroup1
+       - !Ref BastionHostSecGroup
       SubnetId: 
        Fn::ImportValue: !Sub "${EnvironmentName}-PUB-SN-AZ1"
       UserData: 
@@ -117,7 +87,7 @@ Resources:
       InstanceType: !Ref BastionInstanceType
       IamInstanceProfile: !Ref IAMRoleSSMBastionHostInstanceProfile
       SecurityGroupIds:
-       - !Ref BastionHostSecGroup2
+       - !Ref BastionHostSecGroup
       SubnetId: 
        Fn::ImportValue: !Sub "${EnvironmentName}-PUB-SN-AZ2"
       UserData: 
@@ -169,14 +139,8 @@ Outputs:
     Export: 
       Name: !Sub ${EnvironmentName}-Bastion-AZ2-DNS
 
-  BastionSecGrp1:
+  BastionSecGrp:
     Description: Reference to the security group used by Bastion
-    Value: !Ref BastionHostSecGroup1
+    Value: !Ref BastionHostSecGroup
     Export: 
-      Name: !Sub ${EnvironmentName}-SG-BastionHostSecGroup1
-
-  BastionSecGrp2:
-    Description: Reference to the security group used by Bastion
-    Value: !Ref BastionHostSecGroup2
-    Export: 
-      Name: !Sub ${EnvironmentName}-SG-BastionHostSecGroup2
+      Name: !Sub ${EnvironmentName}-SG-BastionHostSecGroup
