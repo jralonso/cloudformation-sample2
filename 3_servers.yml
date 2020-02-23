@@ -35,7 +35,7 @@ Parameters:
   MinWebServers: 
     Description: Minimum number of web servers
     Type: Number  
-    Default: "1"
+    Default: "2"
 
   VPCId: 
     Description: Identifier of the VPC
@@ -51,7 +51,11 @@ Parameters:
 
   PrivSubnetsIds:  
     Description: Web Servers private subnets
-    Type: CommaDelimitedList
+    Type: String
+
+  BastionSG:
+    Description: Security group of bastion host
+    Type: String
 
 Resources:
 
@@ -153,7 +157,8 @@ Resources:
   WebAppGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier: !Ref PrivSubnetsIds
+      VPCZoneIdentifier: 
+        - !Ref PrivSubnetsIds
       LaunchConfigurationName: !Ref WebAppLaunchConfig
       MaxSize: !Ref MaxWebServers
       MinSize: !Ref MinWebServers

@@ -99,8 +99,8 @@ Resources:
       TemplateURL: "https://jra-udacity-project2-templates.s3-us-west-2.amazonaws.com/3_servers.yml"
       Parameters: 
         EnvironmentName: !Ref EnvironmentName
-        WebServerAMI: !Ref BastionAMI
-        WebServerInstanceType: !Ref BastionInstanceType
+        WebServerAMI: !Ref WebServerAMI
+        WebServerInstanceType: !Ref WebServerInstanceType
         KeyPair: !Ref KeyPair
         WebServerVolumeSize: !Ref WebServerVolumeSize
         MaxWebServers: !Ref MaxWebServers
@@ -119,3 +119,14 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-ALB-addr
   
+  Bastion1Address:
+    Description: Bastion1 address
+    Value: !GetAtt bastionStack.Outputs.BastionAZ1addr      
+    Export:
+      Name: !Sub ${AWS::StackName}-EC2-Bastion1-addr
+  
+  Bastion2Address:
+    Description: Bastion2 address
+    Value: !GetAtt bastionStack.Outputs.BastionAZ2addr      
+    Export:
+      Name: !Sub ${AWS::StackName}-EC2-Bastion2-addr
