@@ -4,6 +4,22 @@
         "ParameterValue": "Project2"
     },
     {
+        "ParameterKey": "MylocalIP",
+        "ParameterValue": "188.26.220.132/32"
+    },
+    {
+        "ParameterKey": "BastionAMI",
+        "ParameterValue": "ami-0e8c04af2729ff1bb" 
+    },
+    {
+        "ParameterKey": "BastionInstanceType",
+        "ParameterValue": "t2.micro"
+    },
+    {
+        "ParameterKey": "KeyPair",
+        "ParameterValue": "udacityTestEC2"
+    },
+    {
         "ParameterKey": "WebServerAMI",
         "ParameterValue": "ami-005bdb005fb00e791" 
     },
