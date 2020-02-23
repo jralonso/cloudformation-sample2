@@ -1,0 +1,121 @@
+Description: |
+  Juan Ramon Alonso / Udacity DevOps Cloud
+  Project 2 Infraestructure as code using Cloudformation
+  Full infraestructure
+
+Parameters:
+  # Main params
+  EnvironmentName:
+    Description: An environment name to be prefixed to all resources
+    Type: String
+    Default: uda-prj2
+
+  # Bastion specific params
+  MylocalIP: 
+    Description: My local IP
+    Type: String
+
+  BastionInstanceType:
+    Description: AWS instance type for Bastion hosts
+    Type: String
+    Default: t2.micro
+
+  BastionAMI:
+    Description: AWS AMI to use for Bastion hosts
+    Type: String
+    Default: ami-0e8c04af2729ff1bb
+
+  KeyPair:
+    Description: KeyPair file used to access the Bastion hosts
+    Type: String
+    Default: udacityTestEC2
+
+  # Web Server params
+  WebServerAMI: 
+    Description: Web Server AMI
+    Type: String
+    Default: ami-005bdb005fb00e791
+
+  WebServerInstanceType: 
+    Description: Web server instance type
+    Type: String
+    Default: "t3.small"
+  
+  KeyPair: 
+    Description: Key pair to lo in from Bastion
+    Type: String
+    Default: "udacityTestEC2"
+  
+  WebServerVolumeSize: 
+    Description: Web server root disk capacity
+    Type: Number
+    Default: "10"
+  
+  MaxWebServers: 
+    Description: Max number of web servers
+    Type: Number  
+    Default: "2"
+
+  MinWebServers: 
+    Description: Minimum number of web servers
+    Type: Number  
+    Default: "1"
+
+Resources:
+
+  # #############################################
+  # Nested Stack: Network
+  # #############################################
+  networkStack: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: "https://jra-udacity-project2-templates.s3-us-west-2.amazonaws.com/1_network.yml"
+      Parameters: 
+        EnvironmentName: !Ref EnvironmentName
+
+  # #############################################
+  # Nested Stack: Bastion
+  # #############################################
+  bastionStack: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: "https://jra-udacity-project2-templates.s3-us-west-2.amazonaws.com/2_bastion.yml"
+      Parameters: 
+        EnvironmentName: !Ref EnvironmentName
+        MylocalIP: !Ref MylocalIP
+        BastionAMI: !Ref BastionAMI
+        BastionInstanceType: !Ref BastionInstanceType
+        KeyPair: !Ref KeyPair
+        VPCId: !GetAtt networkStack.Outputs.VPC
+        PubSubnet1Id: !GetAtt networkStack.Outputs.PublicSubnet1
+        PubSubnet2Id: !GetAtt networkStack.Outputs.PublicSubnet2
+
+  # #############################################
+  # Nested Stack: Web Servers
+  # #############################################
+  serversStack: 
+    Type: AWS::CloudFormation::Stack
+    Properties: 
+      TemplateURL: "https://jra-udacity-project2-templates.s3-us-west-2.amazonaws.com/3_servers.yml"
+      Parameters: 
+        EnvironmentName: !Ref EnvironmentName
+        WebServerAMI: !Ref BastionAMI
+        WebServerInstanceType: !Ref BastionInstanceType
+        KeyPair: !Ref KeyPair
+        WebServerVolumeSize: !Ref WebServerVolumeSize
+        MaxWebServers: !Ref MaxWebServers
+        MinWebServers: !Ref MinWebServers
+        VPCId: !GetAtt networkStack.Outputs.VPC
+        PubSubnet1Id: !GetAtt networkStack.Outputs.PublicSubnet1
+        PubSubnet2Id: !GetAtt networkStack.Outputs.PublicSubnet2
+        PrivSubnetsIds: !GetAtt networkStack.Outputs.VPCPrivateSubnets
+        BastionSG: !GetAtt bastionStack.Outputs.BastionSecGrp
+
+Outputs:
+
+  BalancerAddress:
+    Description: ALB DNS address
+    Value: !GetAtt serversStack.Outputs.BalancerDNS      
+    Export:
+      Name: !Sub ${AWS::StackName}-ALB-addr
+  

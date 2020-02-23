@@ -37,6 +37,22 @@ Parameters:
     Type: Number  
     Default: "1"
 
+  VPCId: 
+    Description: Identifier of the VPC
+    Type: String
+
+  PubSubnet1Id: 
+    Description: Load Balancer Public Subnet 1
+    Type: String
+
+  PubSubnet2Id:  
+    Description: Load Balancer Public Subnet 1
+    Type: String
+
+  PrivSubnetsIds:  
+    Description: Web Servers private subnets
+    Type: CommaDelimitedList
+
 Resources:
 
   # Security groups
@@ -44,9 +60,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow HTTP traffic to our load balancer
-      VpcId: 
-        Fn::ImportValue:
-          !Sub "${EnvironmentName}-VPCID"
+      VpcId: !Ref VPCId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -67,9 +81,7 @@ Resources:
     DependsOn: ALBsecgrp
     Properties:
       GroupDescription: Allow HTTP traffic to our Web server and SSH from our Bastion environment
-      VpcId: 
-        Fn::ImportValue:
-          !Sub "${EnvironmentName}-VPCID"
+      VpcId: !Ref VPCId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -78,8 +90,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          SourceSecurityGroupId:
-            Fn::ImportValue: !Sub "${EnvironmentName}-SG-BastionHostSecGroup"
+          SourceSecurityGroupId: !Ref BastionSG
       # From the web server all connections to external servers are allowed so it can download and update software (will do it via NAT)  
       SecurityGroupEgress:
         - IpProtocol: tcp
@@ -142,8 +153,7 @@ Resources:
   WebAppGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier:
-        - Fn::ImportValue: !Sub "${EnvironmentName}-PRIV-SUBNETS"
+      VPCZoneIdentifier: !Ref PrivSubnetsIds
       LaunchConfigurationName: !Ref WebAppLaunchConfig
       MaxSize: !Ref MaxWebServers
       MinSize: !Ref MinWebServers
@@ -160,8 +170,8 @@ Resources:
     Properties:
       Scheme: internet-facing
       Subnets:
-        - Fn::ImportValue: !Sub "${EnvironmentName}-PUB-SN-AZ1"
-        - Fn::ImportValue: !Sub "${EnvironmentName}-PUB-SN-AZ2"
+        - !Ref PubSubnet1Id
+        - !Ref PubSubnet2Id
       Tags:
         - Key: Environment
           Value: !Sub ${EnvironmentName}
@@ -208,8 +218,7 @@ Resources:
         - Key: Name
           Value: !Sub ${EnvironmentName}-TG-WebServers
       UnhealthyThresholdCount: 5
-      VpcId:
-        Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"
+      VpcId: !Ref VPCId
 
 Outputs:
 

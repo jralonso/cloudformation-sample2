@@ -27,6 +27,18 @@ Parameters:
     Description: KeyPair file used to access the Bastion hosts
     Type: String
 
+  VPCId: 
+    Description: Identifier of the VPC
+    Type: String
+  
+  PubSubnet1Id: 
+    Description: Bastion 1 Public subnet
+    Type: String
+
+  PubSubnet2Id:  
+    Description: Bastion 2 Public subnet
+    Type: String
+
 Resources:
   # Bastion Host
   # Security group to allow SSH access
@@ -34,9 +46,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow SSH and PING ingress and all traffic from Bastion Host to Internet
-      VpcId: 
-        Fn::ImportValue:
-          !Sub "${EnvironmentName}-VPCID"
+      VpcId: !Ref VPCId
       SecurityGroupIngress:
           # Rule for Bastion host
         - IpProtocol: tcp
@@ -68,8 +78,7 @@ Resources:
       IamInstanceProfile: !Ref IAMRoleSSMBastionHostInstanceProfile
       SecurityGroupIds:
        - !Ref BastionHostSecGroup
-      SubnetId: 
-       Fn::ImportValue: !Sub "${EnvironmentName}-PUB-SN-AZ1"
+      SubnetId: !Ref PubSubnet1Id
       UserData: 
        Fn::Base64: !Sub |
          #!/bin/bash -ex
@@ -88,8 +97,7 @@ Resources:
       IamInstanceProfile: !Ref IAMRoleSSMBastionHostInstanceProfile
       SecurityGroupIds:
        - !Ref BastionHostSecGroup
-      SubnetId: 
-       Fn::ImportValue: !Sub "${EnvironmentName}-PUB-SN-AZ2"
+      SubnetId: !Ref PubSubnet2Id
       UserData: 
        Fn::Base64: !Sub |
          #!/bin/bash -ex
