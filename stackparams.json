@@ -1,7 +1,7 @@
 [
     {
         "ParameterKey": "EnvironmentName",
-        "ParameterValue": "Project2"
+        "ParameterValue": "p2"
     },
     {
         "ParameterKey": "MylocalIP",
