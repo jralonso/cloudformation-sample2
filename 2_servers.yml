@@ -99,16 +99,15 @@ Resources:
           aws s3 cp s3://udacity-demo-1/udacity.zip .
           unzip -o udacity.zip
       ImageId: ami-005bdb005fb00e791
-      #IamInstanceProfile: !Ref ProfileWithRolesForOurApp
       KeyName: udacityTestEC2
       SecurityGroups:
         - Ref: WebServerSecGroup
       InstanceType: t3.medium # General use: 2core + 4GB RAM
       IamInstanceProfile: !Ref IAMWebInstanceProfile
-      # BlockDeviceMappings:
-      #   - DeviceName: "/dev/sdk"
-      #     Ebs:
-      #       VolumeSize: '10'
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 10
 
   #Auto scaling group
   WebAppGroup:
