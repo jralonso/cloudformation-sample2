@@ -8,26 +8,6 @@ Parameters:
     Description: An environment name to be prefixed to all resources
     Type: String
 
-  VpcCIDR:
-    Description: IP range (CIDR notation) for this VPC
-    Type: String
-    
-  PrivateSubnet1CIDR:
-    Description: IP range (CIDR notation) for this Subnet
-    Type: String
-
-  PrivateSubnet2CIDR:
-    Description: IP range (CIDR notation) for this Subnet
-    Type: String
-
-  PublicSubnet1CIDR:
-    Description: IP range (CIDR notation) for this Subnet
-    Type: String
-
-  PublicSubnet2CIDR:
-    Description: IP range (CIDR notation) for this Subnet
-    Type: String
-
 Resources:
 
   # #############################################
@@ -38,9 +18,8 @@ Resources:
   myVPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: !Ref VpcCIDR
+      CidrBlock: "10.0.0.0/16"
       # We want VPC to provide DNS names for our instances
-      # do not 
       EnableDnsHostnames: true
       Tags:
         - Key: Environment
@@ -68,7 +47,7 @@ Resources:
     Properties:
       VpcId: !Ref myVPC
       AvailabilityZone: !Select [ 0, !GetAZs '' ]
-      CidrBlock: !Ref PublicSubnet1CIDR
+      CidrBlock: "10.0.10.0/24"
       MapPublicIpOnLaunch: true
       Tags: 
         - Key: Environment
@@ -81,7 +60,7 @@ Resources:
     Properties:
       VpcId: !Ref myVPC
       AvailabilityZone: !Select [ 1, !GetAZs '' ]
-      CidrBlock: !Ref PublicSubnet2CIDR
+      CidrBlock: "10.0.20.0/24"
       MapPublicIpOnLaunch: true
       Tags: 
         - Key: Environment
@@ -94,7 +73,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref myVPC
-      CidrBlock: !Ref PrivateSubnet1CIDR
+      CidrBlock: "10.0.100.0/24"
       MapPublicIpOnLaunch: false  
       AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
@@ -107,7 +86,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref myVPC
-      CidrBlock: !Ref PrivateSubnet2CIDR
+      CidrBlock: "10.0.200.0/24"
       MapPublicIpOnLaunch: false  
       AvailabilityZone: !Select [1, !GetAZs '']
       Tags:
