@@ -25,11 +25,6 @@ Parameters:
     Type: String
     Default: ami-0e8c04af2729ff1bb
 
-  KeyPair:
-    Description: KeyPair file used to access the Bastion hosts
-    Type: String
-    Default: udacityTestEC2
-
   # Web Server params
   WebServerAMI: 
     Description: Web Server AMI
@@ -85,7 +80,6 @@ Resources:
         MylocalIP: !Ref MylocalIP
         BastionAMI: !Ref BastionAMI
         BastionInstanceType: !Ref BastionInstanceType
-        KeyPair: !Ref KeyPair
         VPCId: !GetAtt networkStack.Outputs.VPC
         PubSubnet1Id: !GetAtt networkStack.Outputs.PublicSubnet1
         PubSubnet2Id: !GetAtt networkStack.Outputs.PublicSubnet2
@@ -101,7 +95,6 @@ Resources:
         EnvironmentName: !Ref EnvironmentName
         WebServerAMI: !Ref WebServerAMI
         WebServerInstanceType: !Ref WebServerInstanceType
-        KeyPair: !Ref KeyPair
         WebServerVolumeSize: !Ref WebServerVolumeSize
         MaxWebServers: !Ref MaxWebServers
         MinWebServers: !Ref MinWebServers
@@ -118,7 +111,19 @@ Outputs:
     Value: !GetAtt serversStack.Outputs.BalancerDNS      
     Export:
       Name: !Sub ${AWS::StackName}-ALB-addr
+
+  Bastion1ID:
+    Description: Bastion1 instance ID
+    Value: !GetAtt bastionStack.Outputs.BastionAZ1Id      
+    Export:
+      Name: !Sub ${AWS::StackName}-EC2-Bastion1-instanceId
   
+  Bastion2ID:
+    Description: Bastion2 instance ID
+    Value: !GetAtt bastionStack.Outputs.BastionAZ2Id      
+    Export:
+      Name: !Sub ${AWS::StackName}-EC2-Bastion2-instanceId
+
   Bastion1Address:
     Description: Bastion1 address
     Value: !GetAtt bastionStack.Outputs.BastionAZ1addr      

@@ -23,10 +23,6 @@ Parameters:
     Type: String
     Default: ami-0e8c04af2729ff1bb
 
-  KeyPair:
-    Description: KeyPair file used to access the Bastion hosts
-    Type: String
-
   VPCId: 
     Description: Identifier of the VPC
     Type: String
@@ -72,7 +68,6 @@ Resources:
   BastionHostAZ1:
    Type: AWS::EC2::Instance
    Properties:
-      KeyName: !Ref KeyPair
       ImageId:  !Ref BastionAMI
       InstanceType: !Ref BastionInstanceType
       IamInstanceProfile: !Ref IAMRoleSSMBastionHostInstanceProfile
@@ -81,7 +76,24 @@ Resources:
       SubnetId: !Ref PubSubnet1Id
       UserData: 
        Fn::Base64: !Sub |
-         #!/bin/bash -ex
+          #!/bin/bash -ex
+          yum install -y python3-pip python3 python3-setuptools
+          # Download get-pip to current directory. It won't install anything, as of now
+          curl -O https://bootstrap.pypa.io/get-pip.py
+          # Use python3.6 to install pip
+          python3 get-pip.py
+          # this will install pip3 and pip3.
+          # install AWS EC2 Instance Connect CLI
+          pip install ec2instanceconnectcli
+          # install jq to deal with JSON
+          yum install -y jq
+          # Build the profile to connect to Web Servers
+          cd /home/ec2-user
+          mkdir .aws
+          echo "[default]" > .aws/credentials
+          chown ec2-user:ec2-user .aws/credentials
+          echo "aws_secret_access_key=`aws ssm get-parameter --name "user_aws_secret_access_key" --region us-west-2 | jq -r '.Parameter.Value'`" >> .aws/credentials
+          echo "aws_access_key_id=`aws ssm get-parameter --name "user_aws_access_key_id" --region us-west-2 | jq -r '.Parameter.Value'`" >> .aws/credentials
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Bastion Host AZ1
@@ -91,7 +103,6 @@ Resources:
   BastionHostAZ2:
    Type: AWS::EC2::Instance
    Properties:
-      KeyName: !Ref KeyPair
       ImageId: !Ref BastionAMI 
       InstanceType: !Ref BastionInstanceType
       IamInstanceProfile: !Ref IAMRoleSSMBastionHostInstanceProfile
@@ -99,8 +110,25 @@ Resources:
        - !Ref BastionHostSecGroup
       SubnetId: !Ref PubSubnet2Id
       UserData: 
-       Fn::Base64: !Sub |
-         #!/bin/bash -ex
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+          yum install -y python3-pip python3 python3-setuptools
+          # Download get-pip to current directory. It won't install anything, as of now
+          curl -O https://bootstrap.pypa.io/get-pip.py
+          # Use python3.6 to install pip
+          python3 get-pip.py
+          # this will install pip3 and pip3.
+          # install AWS EC2 Instance Connect CLI
+          pip install ec2instanceconnectcli
+          # install jq to deal with JSON
+          yum install -y jq
+          # Build the profile to connect to Web Servers
+          cd /home/ec2-user
+          mkdir .aws
+          echo "[default]" > .aws/credentials
+          chown ec2-user:ec2-user .aws/credentials
+          echo "aws_secret_access_key=`aws ssm get-parameter --name "user_aws_secret_access_key" --region us-west-2 | jq -r '.Parameter.Value'`" >> .aws/credentials
+          echo "aws_access_key_id=`aws ssm get-parameter --name "user_aws_access_key_id" --region us-west-2 | jq -r '.Parameter.Value'`" >> .aws/credentials
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName} Bastion Host AZ2
@@ -126,6 +154,37 @@ Resources:
             Action:  
               - sts:AssumeRole
   
+  AccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${AWS::StackName}-AccessPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - ec2-instance-connect:SendSSHPublicKey
+            Resource: 
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+      Roles:
+        - !Ref IAMRoleAccessSSMFromBastionHost
+
+  AccessParametersPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${AWS::StackName}-AccessParametersPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - ssm:GetParameters
+              - ssm:GetParameter
+            Resource: 
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/user_aws_*
+      Roles:
+        - !Ref IAMRoleAccessSSMFromBastionHost
+
   IAMRoleSSMBastionHostInstanceProfile: 
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -135,11 +194,23 @@ Resources:
 
 Outputs:
 
+  BastionAZ1Id:
+    Description: BastionHost AZ1 instance id
+    Value: !Ref BastionHostAZ1
+    Export: 
+      Name: !Sub ${EnvironmentName}-Bastion-AZ1-instanceId      
+
+  BastionAZ2Id:
+    Description: BastionHost AZ2 instance id
+    Value: !Ref BastionHostAZ2
+    Export: 
+      Name: !Sub ${EnvironmentName}-Bastion-AZ2-instanceId
+
   BastionAZ1addr:
     Description: BastionHost AZ1 address
     Value: !GetAtt BastionHostAZ1.PublicDnsName
     Export: 
-      Name: !Sub ${EnvironmentName}-Bastion-AZ1-DNS
+      Name: !Sub ${EnvironmentName}-Bastion-AZ1-DNS      
 
   BastionAZ2addr:
     Description: BastionHost AZ2 address

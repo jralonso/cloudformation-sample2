@@ -18,10 +18,6 @@ Parameters:
     Type: String
     Default: t3.small
   
-  KeyPair: 
-    Description: Key pair to lo in from Bastion
-    Type: String
-  
   WebServerVolumeSize: 
     Description: Web server root disk capacity
     Type: Number
@@ -106,7 +102,7 @@ Resources:
           Value: !Sub ${EnvironmentName} SecGrp for HTTP and local SSH Web Server
 
   # IAM Role for S3 access
-  IAMRoleS3Access:
+  IAMRoleAccess:
     Type: AWS::IAM::Role
     Properties:
       ManagedPolicyArns:
@@ -121,12 +117,27 @@ Resources:
           Action:
             - sts:AssumeRole
 
+  # AccessPolicyWebServers:
+  #   Type: AWS::IAM::Policy
+  #   Properties:
+  #     PolicyName: !Sub ${AWS::StackName}-AccessPolicy
+  #     PolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: "Allow"
+  #           Action:
+  #             - ec2-instance-connect:SendSSHPublicKey
+  #           Resource: 
+  #             - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+  #     Roles:
+  #       - !Ref IAMRoleAccess
+
   IAMWebInstanceProfile: 
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: "/" 
       Roles: 
-        - !Ref IAMRoleS3Access
+        - !Ref IAMRoleAccess
     
   # Launch configuration
   WebAppLaunchConfig:
@@ -136,14 +147,14 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           apt-get update -y
+          sudo apt-get install ec2-instance-connect -y
           apt-get install unzip awscli -y
           apt-get install apache2 -y
           systemctl start apache2.service
           cd /var/www/html
           aws s3 cp s3://udacity-demo-1/udacity.zip .
           unzip -o udacity.zip
-      ImageId: !Ref WebServerAMI
-      KeyName: !Ref KeyPair
+      ImageId: !Ref WebServerAMI      
       SecurityGroups:
         - Ref: WebServerSecGroup
       InstanceType: !Ref WebServerInstanceType # General use: 2core + 4GB RAM
@@ -167,7 +178,10 @@ Resources:
       Tags:
         - Key: Environment
           Value: !Sub ${EnvironmentName}
-          PropagateAtLaunch: True
+          PropagateAtLaunch: true
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Web Server
+          PropagateAtLaunch: true
 
   # Load Balancer
   WebAppLB:
@@ -229,9 +243,7 @@ Outputs:
 
   BalancerDNS:
     Description: ALP DNS address
-    Value: !Sub
-      - http://${ALBaddr}
-      - { ALBaddr: !GetAtt WebAppLB.DNSName }
+    Value: !Join [ "", [ "http://", !GetAtt WebAppLB.DNSName ] ]
     Export:
       Name: !Sub ${EnvironmentName}-ALB-addr
   

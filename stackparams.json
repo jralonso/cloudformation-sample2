@@ -1,7 +1,7 @@
 [
     {
         "ParameterKey": "EnvironmentName",
-        "ParameterValue": "p3"
+        "ParameterValue": "p13"
     },
     {
         "ParameterKey": "MylocalIP",
@@ -16,20 +16,12 @@
         "ParameterValue": "t2.micro"
     },
     {
-        "ParameterKey": "KeyPair",
-        "ParameterValue": "udacityTestEC2"
-    },
-    {
         "ParameterKey": "WebServerAMI",
         "ParameterValue": "ami-005bdb005fb00e791" 
     },
     {
         "ParameterKey": "WebServerInstanceType",
-        "ParameterValue": "t3.medium"
-    },
-    {
-        "ParameterKey": "KeyPair",
-        "ParameterValue": "udacityTestEC2"
+        "ParameterValue": "t3.small"
     },
     {
         "ParameterKey": "WebServerVolumeSize",
@@ -37,10 +29,10 @@
     },
     {
         "ParameterKey": "MaxWebServers",
-        "ParameterValue": "2"
+        "ParameterValue": "1"
     },
     {
         "ParameterKey": "MinWebServers",
-        "ParameterValue": "2"
+        "ParameterValue": "1"
     }
 ]
