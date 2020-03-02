@@ -4,7 +4,7 @@ pipeline {
     stage('error') {
       steps {
         echo 'Message 1'
-        s3DoesObjectExist(bucket: 'arn:aws:s3:::ita212', path: 'udacity.zip')
+        s3DoesObjectExist(bucket: 'ita212', path: 'udacity.zip')
       }
     }
 
