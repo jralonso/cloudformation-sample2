@@ -1,7 +1,4 @@
-Some notes about the project:
-
 # Udacity cloudformation project 2
-The zip file contains every file needed to build the stack
 I have used nested stacks to have a cleaner layout:
    * 0_rootstack.yml is the main file
    * 1_network.yml builds the network stack
